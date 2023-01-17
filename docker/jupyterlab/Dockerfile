@@ -15,7 +15,7 @@
 # Use tensorflow-1.14.0 as a base image, allowing the user to
 # speficy if they want GPU support, by setting IMAGE_TYPE to "gpu".
 ARG IMAGE_TYPE="cpu"
-FROM gcr.io/kubeflow-images-public/tensorflow-1.14.0-notebook-${IMAGE_TYPE}:v0.7.0
+FROM gcr.io/kubeflow-images-public/tensorflow-1.15.2-notebook-cpu:v-base-1caade5-1228430207824695301
 
 USER root
 
@@ -40,11 +40,17 @@ RUN pip3 install --upgrade pip && \
     pip3 install --upgrade kubeflow-kale && \
     jupyter labextension install kubeflow-kale-labextension
 
+RUN pip3 install --upgrade pandas && \
+    pip3 install --upgrade tensorflow
+
 RUN echo "jovyan ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/jovyan
 WORKDIR /home/jovyan
 USER jovyan
+
+ENV KALE_KATIB_KFP_TRIAL_IMAGE kmor76/katib-kfp-trial:a7f7bb79-d9bf99ac
 
 CMD ["sh", "-c", \
      "jupyter lab --notebook-dir=/home/jovyan --ip=0.0.0.0 --no-browser \
       --allow-root --port=8888 --LabApp.token='' --LabApp.password='' \
       --LabApp.allow_origin='*' --LabApp.base_url=${NB_PREFIX}"]
+
