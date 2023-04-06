@@ -11,14 +11,20 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-
+ 
 # Use tensorflow-1.14.0 as a base image, allowing the user to
 # speficy if they want GPU support, by setting IMAGE_TYPE to "gpu".
 ARG IMAGE_TYPE="cpu"
-FROM gcr.io/kubeflow-images-public/tensorflow-1.15.2-notebook-cpu:v-base-1caade5-1228430207824695301
+#FROM gcr.io/kubeflow-images-public/tensorflow-1.15.2-notebook-gpu:v-base-1caade5-1228430207824695301
+ 
+FROM rapidsai/rapidsai-dev:21.06-cuda11.2-devel-ubuntu20.04-py3.7
 
 USER root
 
+RUN python3.7 -m pip install pip==22.0.4 setuptools==60.9.3
+
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
+ 
 # Install basic dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -26,11 +32,11 @@ RUN apt-get update && \
         python-pip python-setuptools build-essential python-dev \
         python3-pip python3-wheel && \
     rm -rf /var/lib/apt/lists/*
-
+ 
 ENV SHELL /bin/bash
 COPY bashrc /etc/bash.bashrc
 RUN echo "set background=dark" >> /etc/vim/vimrc.local
-
+ 
 # Install latest KFP SDK & Kale & JupyterLab Extension
 RUN pip3 install --upgrade pip && \
     # XXX: Install enum34==1.1.8 because other versions lead to errors during
@@ -39,18 +45,19 @@ RUN pip3 install --upgrade pip && \
     pip3 install --upgrade "jupyterlab>=2.0.0,<3.0.0" && \
     pip3 install --upgrade kubeflow-kale && \
     jupyter labextension install kubeflow-kale-labextension
-
+ 
 RUN pip3 install --upgrade pandas && \
     pip3 install --upgrade tensorflow
+ 
+RUN pip3 install --upgrade torch torchvision torchaudio
 
 RUN echo "jovyan ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/jovyan
 WORKDIR /home/jovyan
 USER jovyan
-
+ 
 ENV KALE_KATIB_KFP_TRIAL_IMAGE kmor76/katib-kfp-trial:a7f7bb79-d9bf99ac
-
+ 
 CMD ["sh", "-c", \
      "jupyter lab --notebook-dir=/home/jovyan --ip=0.0.0.0 --no-browser \
       --allow-root --port=8888 --LabApp.token='' --LabApp.password='' \
       --LabApp.allow_origin='*' --LabApp.base_url=${NB_PREFIX}"]
-
